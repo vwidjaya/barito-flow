@@ -3,9 +3,11 @@ language: go
 notifications:
   email: false
 
-install:
-  - curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-  - dep ensure
+go:
+  - "1.12.5"
+
+env:
+  - GO111MODULE=on
 
 script:
   - go test ./...
@@ -23,5 +25,5 @@ deploy:
     - barito-flow-darwin
   on:
     tags: true
-    repo: vwidjaya/barito-flow
+    repo: BaritoLog/barito-flow
     all_branches: true
