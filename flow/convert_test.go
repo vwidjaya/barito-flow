@@ -8,13 +8,13 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/struct"
-	pb "github.com/vwidjaya/barito-proto/producer"
+	prodpb "github.com/vwidjaya/barito-proto/producer"
 )
 
 func TestConvertTimberToKafkaMessage(t *testing.T) {
 	topic := "some-topic"
 
-	timber := &pb.Timber{
+	timber := &prodpb.Timber{
 		Timestamp: "2018-03-10T23:00:00Z",
 	}
 
@@ -37,7 +37,7 @@ func TestConvertKafkaMessageToTimber_ProtoParseError(t *testing.T) {
 }
 
 func TestConvertKafkaMessageToTimber(t *testing.T) {
-	b, _ := proto.Marshal(&pb.Timber{})
+	b, _ := proto.Marshal(&prodpb.Timber{})
 
 	message := &sarama.ConsumerMessage{
 		Topic: "some-topic",
@@ -50,7 +50,7 @@ func TestConvertKafkaMessageToTimber(t *testing.T) {
 }
 
 func TestConvertTimberToEsDocumentString(t *testing.T) {
-	timber := pb.Timber{
+	timber := prodpb.Timber{
 		Content: &structpb.Struct{
 			Fields: make(map[string]*structpb.Value),
 		},
@@ -58,4 +58,15 @@ func TestConvertTimberToEsDocumentString(t *testing.T) {
 	document := ConvertTimberToEsDocumentString(timber, &jsonpb.Marshaler{})
 	expected := "{\"@timestamp\":\"\"}"
 	FatalIf(t, expected != document, "expected %s, received %s", expected, document)
+}
+
+func TestConvertTimberToLokiEntry(t *testing.T) {
+	timber := prodpb.Timber{
+		Content: &structpb.Struct{
+			Fields: make(map[string]*structpb.Value),
+		},
+	}
+	entry := ConvertTimberToLokiEntry(timber, &jsonpb.Marshaler{})
+	expected := "{\"@timestamp\":\"\"}"
+	FatalIf(t, expected != entry.Line, "expected %s, received %s", expected, entry.Line)
 }

@@ -5,8 +5,11 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
+
 	stpb "github.com/golang/protobuf/ptypes/struct"
-	pb "github.com/vwidjaya/barito-proto/producer"
+	lokipb "github.com/vwidjaya/barito-proto/loki"
+	prodpb "github.com/vwidjaya/barito-proto/producer"
 )
 
 const (
@@ -14,7 +17,7 @@ const (
 	ProtoParseError = errkit.Error("Protobuf Parse Error")
 )
 
-func ConvertTimberToKafkaMessage(timber *pb.Timber, topic string) *sarama.ProducerMessage {
+func ConvertTimberToKafkaMessage(timber *prodpb.Timber, topic string) *sarama.ProducerMessage {
 	b, _ := proto.Marshal(timber)
 
 	return &sarama.ProducerMessage{
@@ -23,7 +26,7 @@ func ConvertTimberToKafkaMessage(timber *pb.Timber, topic string) *sarama.Produc
 	}
 }
 
-func ConvertKafkaMessageToTimber(message *sarama.ConsumerMessage) (timber pb.Timber, err error) {
+func ConvertKafkaMessageToTimber(message *sarama.ConsumerMessage) (timber prodpb.Timber, err error) {
 	err = proto.Unmarshal(message.Value, &timber)
 	if err != nil {
 		err = errkit.Concat(ProtoParseError, err)
@@ -33,8 +36,24 @@ func ConvertKafkaMessageToTimber(message *sarama.ConsumerMessage) (timber pb.Tim
 	return
 }
 
-func ConvertTimberToEsDocumentString(timber pb.Timber, m *jsonpb.Marshaler) string {
-	doc := timber.GetContent()
+func ConvertTimberToEsDocumentString(timber prodpb.Timber, m *jsonpb.Marshaler) string {
+	doc := ExtractTimberContents(timber)
+	docStr, _ := m.MarshalToString(doc)
+	return docStr
+}
+
+func ConvertTimberToLokiEntry(timber prodpb.Timber, m *jsonpb.Marshaler) *lokipb.Entry {
+	doc := ExtractTimberContents(timber)
+	line, _ := m.MarshalToString(doc)
+
+	return &lokipb.Entry{
+		Timestamp: ptypes.TimestampNow(),
+		Line:      line,
+	}
+}
+
+func ExtractTimberContents(timber prodpb.Timber) (doc *stpb.Struct) {
+	doc = timber.GetContent()
 
 	ts := &stpb.Value{
 		Kind: &stpb.Value_StringValue{
@@ -42,7 +61,5 @@ func ConvertTimberToEsDocumentString(timber pb.Timber, m *jsonpb.Marshaler) stri
 		},
 	}
 	doc.Fields["@timestamp"] = ts
-
-	docStr, _ := m.MarshalToString(doc)
-	return docStr
+	return
 }
