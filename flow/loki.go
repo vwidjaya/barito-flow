@@ -35,7 +35,7 @@ func NewLokiConfig(lkUrl string, bulkSize int, flushMs int) lokiConfig {
 }
 
 type Loki interface {
-	Store(timber prodpb.Timber)
+	Store(labels string, timber prodpb.Timber)
 }
 
 type lokiClient struct {
@@ -62,17 +62,13 @@ type lokiEntry struct {
 	entry  *lokipb.Entry
 }
 
-func (c *lokiClient) Store(timber prodpb.Timber) {
-	c.entries <- &lokiEntry{
-		labels: generateLokiLabels(timber),
-		entry:  ConvertTimberToLokiEntry(timber, c.jspbMarshaler),
-	}
-}
+func (c *lokiClient) Store(labels string, timber prodpb.Timber) {
+	entry := ConvertTimberToLokiEntry(timber, c.jspbMarshaler)
 
-func generateLokiLabels(timber prodpb.Timber) string {
-	esIndexPrefix := timber.GetContext().GetEsIndexPrefix()
-	currDate := time.Now().Format("2006.01.02")
-	return fmt.Sprintf("{app_name=\"%s-%s\"}", esIndexPrefix, currDate)
+	c.entries <- &lokiEntry{
+		labels: labels,
+		entry:  entry,
+	}
 }
 
 func (c *lokiClient) run() {

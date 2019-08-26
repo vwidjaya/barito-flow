@@ -14,14 +14,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	ErrMakeSyncProducer       = errkit.Error("Make sync producer failed")
-	ErrKafkaRetryLimitReached = errkit.Error("Error connecting to kafka, retry limit reached")
-	ErrInitGrpc               = errkit.Error("Failed to listen to gRPC address")
-	ErrRegisterGrpc           = errkit.Error("Error registering gRPC server endpoint into reverse proxy")
-	ErrReverseProxy           = errkit.Error("Error serving REST reverse proxy")
-)
-
 type ProducerService interface {
 	pb.ProducerServer
 	Start() error
