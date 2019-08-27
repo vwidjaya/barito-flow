@@ -66,7 +66,9 @@ func TestConvertTimberToLokiEntry(t *testing.T) {
 			Fields: make(map[string]*structpb.Value),
 		},
 	}
-	entry := ConvertTimberToLokiEntry(timber, &jsonpb.Marshaler{})
+	entry, err := ConvertTimberToLokiEntry(timber, &jsonpb.Marshaler{})
 	expected := "{\"@timestamp\":\"\"}"
+
+	FatalIfError(t, err)
 	FatalIf(t, expected != entry.Line, "expected %s, received %s", expected, entry.Line)
 }

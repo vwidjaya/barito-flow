@@ -35,7 +35,7 @@ func NewLokiConfig(lkUrl string, bulkSize int, flushMs int) lokiConfig {
 }
 
 type Loki interface {
-	Store(labels string, timber prodpb.Timber)
+	Store(labels string, timber prodpb.Timber) (err error)
 }
 
 type lokiClient struct {
@@ -62,13 +62,18 @@ type lokiEntry struct {
 	entry  *lokipb.Entry
 }
 
-func (c *lokiClient) Store(labels string, timber prodpb.Timber) {
-	entry := ConvertTimberToLokiEntry(timber, c.jspbMarshaler)
+func (c *lokiClient) Store(labels string, timber prodpb.Timber) (err error) {
+	entry, err := ConvertTimberToLokiEntry(timber, c.jspbMarshaler)
+	if err != nil {
+		return
+	}
 
 	c.entries <- &lokiEntry{
 		labels: labels,
 		entry:  entry,
 	}
+
+	return
 }
 
 func (c *lokiClient) run() {

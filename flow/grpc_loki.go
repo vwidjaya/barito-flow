@@ -101,7 +101,11 @@ func (s *baritoLokiService) Produce(_ context.Context, timber *pb.Timber) (resp 
 	labels := generateLokiLabels(timber.GetContext())
 
 	timber.Timestamp = time.Now().UTC().Format(time.RFC3339)
-	s.lkClient.Store(labels, *timber)
+	err = s.lkClient.Store(labels, *timber)
+	if err != nil {
+		err = onStoreErrorGrpc(err)
+		return
+	}
 
 	resp = &pb.ProduceResult{
 		Topic: labels,
@@ -115,7 +119,11 @@ func (s *baritoLokiService) ProduceBatch(_ context.Context, timberCollection *pb
 	for _, timber := range timberCollection.GetItems() {
 		timber.Context = timberCollection.GetContext()
 		timber.Timestamp = time.Now().UTC().Format(time.RFC3339)
-		s.lkClient.Store(labels, *timber)
+		err = s.lkClient.Store(labels, *timber)
+		if err != nil {
+			err = onStoreErrorGrpc(err)
+			return
+		}
 	}
 
 	resp = &pb.ProduceResult{

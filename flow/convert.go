@@ -1,6 +1,8 @@
 package flow
 
 import (
+	"fmt"
+
 	"github.com/BaritoLog/go-boilerplate/errkit"
 	"github.com/Shopify/sarama"
 	"github.com/golang/protobuf/jsonpb"
@@ -37,23 +39,31 @@ func ConvertKafkaMessageToTimber(message *sarama.ConsumerMessage) (timber prodpb
 }
 
 func ConvertTimberToEsDocumentString(timber prodpb.Timber, m *jsonpb.Marshaler) string {
-	doc := ExtractTimberContents(timber)
+	doc, _ := ExtractTimberContents(timber)
 	docStr, _ := m.MarshalToString(doc)
 	return docStr
 }
 
-func ConvertTimberToLokiEntry(timber prodpb.Timber, m *jsonpb.Marshaler) *lokipb.Entry {
-	doc := ExtractTimberContents(timber)
-	line, _ := m.MarshalToString(doc)
+func ConvertTimberToLokiEntry(timber prodpb.Timber, m *jsonpb.Marshaler) (*lokipb.Entry, error) {
+	doc, err := ExtractTimberContents(timber)
+	if err != nil {
+		return nil, err
+	}
+
+	line, err := m.MarshalToString(doc)
 
 	return &lokipb.Entry{
 		Timestamp: ptypes.TimestampNow(),
 		Line:      line,
-	}
+	}, err
 }
 
-func ExtractTimberContents(timber prodpb.Timber) (doc *stpb.Struct) {
+func ExtractTimberContents(timber prodpb.Timber) (doc *stpb.Struct, err error) {
 	doc = timber.GetContent()
+	if doc == nil {
+		err = fmt.Errorf("No content found in timber")
+		return
+	}
 
 	ts := &stpb.Value{
 		Kind: &stpb.Value_StringValue{

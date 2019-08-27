@@ -216,6 +216,11 @@ func TestProducerService_Start(t *testing.T) {
 }
 
 func FatalIfWrongGrpcError(t *testing.T, expected error, actual error) {
+	if actual == nil {
+		t.Errorf("no error received.")
+		return
+	}
+
 	expFields := strings.Fields(expected.Error())[:5]
 	expStr := strings.Join(expFields, " ")
 
